@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run *)",
+      "Bash(bunx prisma *)",
+      "Bash(bun test *)",
+      "Bash(bun audit *)",
+      "Bash(bun update *)",
+      "Bash(bunx tsc *)"
+    ]
+  }
+}

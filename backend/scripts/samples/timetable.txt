@@ -1,0 +1,34 @@
+CSE - Semester 3 - Section A
+Branch: CSE
+Semester: 3
+Section: A
+
+Monday
+1-2: CS303 Data Structures - L1 - Dr. Meera Nair
+3-4: CS305 Database Systems - L2 - Dr. Rohan Gupta
+5: CS307 Computer Networks - L3 - Dr. Kavita Rao
+6: CS309 Operating Systems - L4 - Prof. Amit Verma
+
+Tuesday
+1-2: CS305 Database Systems - L2 - Dr. Rohan Gupta
+3: CS311 Theory of Computation - L5 - Dr. Sunita Joshi
+4-5: CS303 Data Structures (Lab) - LAB1 - Dr. Meera Nair
+6: CS309 Operating Systems - L4 - Prof. Amit Verma
+
+Wednesday
+1: CS307 Computer Networks - L3 - Dr. Kavita Rao
+2-3: CS311 Theory of Computation - L5 - Dr. Sunita Joshi
+4: MA303 Probability and Statistics - L6 - Prof. Rajesh Kumar
+5-6: CS309 Operating Systems (Lab) - LAB2 - Prof. Amit Verma
+
+Thursday
+1-2: CS307 Computer Networks - L3 - Dr. Kavita Rao
+3: MA303 Probability and Statistics - L6 - Prof. Rajesh Kumar
+4-5: CS305 Database Systems (Lab) - LAB1 - Dr. Rohan Gupta
+6: CS303 Data Structures - L1 - Dr. Meera Nair
+
+Friday
+1: MA303 Probability and Statistics - L6 - Prof. Rajesh Kumar
+2-3: CS311 Theory of Computation - L5 - Dr. Sunita Joshi
+4: CS303 Data Structures - L1 - Dr. Meera Nair
+5-6: Library / Self Study - LIB

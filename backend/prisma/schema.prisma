@@ -1,0 +1,386 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDUCATOR
+  ANALYST
+  STUDENT
+  PARENT
+}
+
+enum DocStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum JobType {
+  INGEST
+  EXTRACT
+  GENERATE
+  GRADE
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  RETRYING
+}
+
+enum ExtractionKind {
+  TIMETABLE
+  GENERIC
+}
+
+enum ExtractionStatus {
+  PARSED
+  VALIDATED
+  REJECTED
+  INTEGRATED
+}
+
+enum PaperStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SubmissionStatus {
+  UPLOADED
+  GRADING
+  GRADED
+  REVIEWED
+}
+
+model Workspace {
+  id            String             @id @default(cuid())
+  name          String
+  slug          String             @unique
+  createdAt     DateTime           @default(now())
+  users         User[]
+  documents     Document[]
+  faculty       Faculty[]
+  rooms         Room[]
+  courses       Course[]
+  extraClasses  ExtraClass[]
+  students      Student[]
+  assignments   Assignment[]
+  invigilations InvigilationDuty[]
+  timetables    Timetable[]
+  auditLogs     AuditLog[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String
+  passwordHash   String
+  role           Role         @default(ANALYST)
+  workspaceId    String?
+  workspace      Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  documents      Document[]
+  faculty        Faculty?
+  student        Student?
+  parentLinks    ParentLink[]
+  gradesReviewed Grade[]
+  auditLogs      AuditLog[]
+}
+
+model Document {
+  id           String          @id @default(cuid())
+  title        String
+  filename     String
+  mimeType     String
+  size         Int
+  pageCount    Int             @default(0)
+  status       DocStatus       @default(UPLOADED)
+  sourceKind   String
+  filePath     String
+  ocrText      String?
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId  String?
+  workspace    Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  jobs         Job[]
+  chunks       Chunk[]
+  extractions  Extraction[]
+  papers       QuestionPaper[]
+  queries      QueryLog[]
+  submissions  Submission[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  type         JobType
+  status       JobStatus @default(QUEUED)
+  currentStage String?
+  stages       Json      @default("[]")
+  params       Json?
+  error        String?
+  documentId   String
+  document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+}
+
+model Chunk {
+  id         String   @id @default(cuid())
+  index      Int
+  content    String
+  tokenCount  Int
+  page        Int      @default(1)
+  contentHash String   @default("")
+  documentId  String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([documentId, index])
+}
+
+model Extraction {
+  id         String           @id @default(cuid())
+  kind       ExtractionKind
+  status     ExtractionStatus @default(PARSED)
+  data       Json
+  confidence Float?
+  error      String?
+  documentId String
+  document   Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+  timetable  Timetable?
+}
+
+model Faculty {
+  id           String        @id @default(cuid())
+  name         String
+  email        String
+  userId       String?       @unique
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspaceId  String?
+  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  slots        TimetableSlot[]
+  extraClasses ExtraClass[]
+  invigilations InvigilationDuty[]
+  createdAt    DateTime      @default(now())
+
+  @@unique([workspaceId, email])
+}
+
+model Room {
+  id           String        @id @default(cuid())
+  code         String
+  name         String
+  capacity     Int?
+  workspaceId  String?
+  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  slots        TimetableSlot[]
+  extraClasses ExtraClass[]
+  invigilations InvigilationDuty[]
+  createdAt    DateTime      @default(now())
+
+  @@unique([workspaceId, code])
+}
+
+model Course {
+  id           String        @id @default(cuid())
+  code         String
+  name         String
+  workspaceId  String?
+  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  slots        TimetableSlot[]
+  extraClasses ExtraClass[]
+  createdAt    DateTime      @default(now())
+
+  @@unique([workspaceId, code])
+}
+
+model Timetable {
+  id           String          @id @default(cuid())
+  branch       String
+  semester     Int
+  section      String?
+  extractionId String?         @unique
+  extraction   Extraction?     @relation(fields: [extractionId], references: [id], onDelete: Cascade)
+  workspaceId  String?
+  workspace    Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  slots        TimetableSlot[]
+  createdAt    DateTime        @default(now())
+}
+
+model TimetableSlot {
+  id          String    @id @default(cuid())
+  day         Int
+  period      Int
+  course      String
+  code        String?
+  room        String?
+  faculty     String?
+  facultyId   String?
+  facultyRef  Faculty?  @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  roomId      String?
+  roomRef     Room?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  courseId    String?
+  courseRef   Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  timetableId String
+  timetable   Timetable @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+
+  @@unique([timetableId, day, period])
+}
+
+model ExtraClass {
+  id        String   @id @default(cuid())
+  title     String
+  notes     String?
+  startsAt  DateTime
+  endsAt    DateTime
+  facultyId String
+  faculty   Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  courseId  String?
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  roomId      String?
+  room        Room?      @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+}
+
+model InvigilationDuty {
+  id          String     @id @default(cuid())
+  date        DateTime
+  period      Int
+  facultyId   String
+  faculty     Faculty    @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  roomId      String?
+  room        Room?      @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  notes       String?
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+}
+
+model Student {
+  id          String       @id @default(cuid())
+  name        String
+  section     String
+  rollNo      String
+  userId      String?      @unique
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspaceId String?
+  workspace   Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  submissions Submission[]
+  parentLinks ParentLink[]
+  createdAt   DateTime     @default(now())
+
+  @@unique([workspaceId, section, rollNo])
+}
+
+model ParentLink {
+  id           String  @id @default(cuid())
+  parentUserId String
+  parent       User    @relation(fields: [parentUserId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentUserId, studentId])
+}
+
+model Assignment {
+  id              String       @id @default(cuid())
+  title           String
+  rubric          Json
+  dueAt           DateTime?
+  workspaceId     String?
+  workspace       Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  questionPaperId String?
+  questionPaper   QuestionPaper? @relation(fields: [questionPaperId], references: [id], onDelete: SetNull)
+  submissions     Submission[]
+  createdAt       DateTime     @default(now())
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  status       SubmissionStatus @default(UPLOADED)
+  assignmentId String
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  documentId   String
+  document     Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  grade        Grade?
+  createdAt    DateTime         @default(now())
+}
+
+model Grade {
+  id           String     @id @default(cuid())
+  submissionId String     @unique
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  aiScores     Json
+  finalScores  Json
+  total        Float
+  feedback     String?
+  reviewedById String?
+  reviewedBy   User?      @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  createdAt    DateTime   @default(now())
+}
+
+model QuestionPaper {
+  id          String       @id @default(cuid())
+  title       String
+  status      PaperStatus  @default(PENDING)
+  totalMarks  Int
+  config      Json
+  sections    Json
+  pdfUrl      String?
+  documentId  String
+  document    Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+}
+
+model QueryLog {
+  id         String   @id @default(cuid())
+  question   String
+  answer     String
+  latencyMs  Int
+  model      String
+  sources    Json
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+
+// Audit trail for security-sensitive actions (auth, mutations, admin ops).
+model AuditLog {
+  id          String    @id @default(cuid())
+  action      String // e.g. "auth.login", "user.create", "document.delete"
+  entity      String?   // affected entity type, e.g. "document", "user"
+  entityId    String?   // affected entity id
+  userId      String?   // actor
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspaceId String?   // actor's workspace at time of action
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  ip          String?
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+
+  @@index([action])
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([createdAt])
+}

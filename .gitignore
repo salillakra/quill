@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# env & secrets
+.env
+.env.local
+.env.*.local
+
+# builds
+dist/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# runtime data
+backend/uploads/
+
+# misc
+*.log
+.DS_Store
+
+.agents/
