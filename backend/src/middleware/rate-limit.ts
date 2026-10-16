@@ -4,14 +4,19 @@ import { createMiddleware } from "hono/factory";
 import type { SessionUser } from "../services/auth.service";
 
 export async function hitRateLimit(key: string, limit: number, windowSec: number): Promise<{ ok: boolean; remaining: number; retryAfter: number }> {
-  const n = await redis.incr(key);
-  if (n === 1) await redis.expire(key, windowSec);
-  const ttl = await redis.ttl(key);
-  return {
-    ok: n <= limit,
-    remaining: Math.max(0, limit - n),
-    retryAfter: ttl > 0 ? ttl : windowSec,
-  };
+  try {
+    const n = await redis.incr(key);
+    if (n === 1) await redis.expire(key, windowSec);
+    const ttl = await redis.ttl(key);
+    return {
+      ok: n <= limit,
+      remaining: Math.max(0, limit - n),
+      retryAfter: ttl > 0 ? ttl : windowSec,
+    };
+  } catch {
+    // Redis unavailable — fail open so the API stays responsive
+    return { ok: true, remaining: limit, retryAfter: 0 };
+  }
 }
 
 export function clientIp(c: { req: { header: (name: string) => string | undefined } }): string {

@@ -13,7 +13,6 @@ RUN bunx prisma generate
 
 COPY src ./src
 
-# Playwright chromium (headless shell is enough for PDF rendering)
 RUN bunx playwright install --with-deps chromium-headless-shell || bunx playwright install chromium
 
 EXPOSE 3001
